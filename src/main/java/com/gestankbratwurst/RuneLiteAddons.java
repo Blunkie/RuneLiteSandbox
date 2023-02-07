@@ -65,10 +65,6 @@ public class RuneLiteAddons extends Plugin {
 
   @Getter
   @Inject
-  private ShortestPathPlugin shortestPathPlugin;
-
-  @Getter
-  @Inject
   private Client client;
 
   @Inject

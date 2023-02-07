@@ -76,8 +76,6 @@ public class SimpleWalker {
     EnvironmentUtils.findExactTile(client, tile -> tile.getWorldLocation().getX() == x && tile.getWorldLocation().getY() == y)
             .ifPresentOrElse((tile) -> {
 
-              addons.getShortestPathPlugin().getPathfinder().run();
-
               Shape shape;
               TileObject groundObject = tile.getGroundObject();
               if (groundObject == null) {
