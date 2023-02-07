@@ -10,9 +10,12 @@ import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
+import net.runelite.api.Item;
+import net.runelite.api.ItemID;
 import net.runelite.api.KeyCode;
 import net.runelite.api.MenuAction;
 import net.runelite.api.NPC;
+import net.runelite.api.TileItem;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.MenuEntryAdded;
 
@@ -110,12 +113,17 @@ public class AutoFighter {
     System.out.println("> Attacking " + npc.getId());
   }
 
+  private boolean isValuable(TileItem item) {
+    int id = item.getId();
+    return ItemUtils.isGrimyLeaf(id) || id == ItemID.BIG_BONES;
+  }
+
   public void onActorDeath(Actor actor) {
     if (!active) {
       return;
     }
     if (client.getLocalPlayer().getInteracting() == actor) {
-      EnvironmentUtils.enqueueNearbyGroundItems(client, item -> ItemUtils.isGrimyLeaf(item.getId()));
+      EnvironmentUtils.enqueueNearbyGroundItems(client, this::isValuable);
       if(++killCounter == KILLS_BEFORE_HAUL) {
         killCounter = 0;
         EnvironmentUtils.haulAllItems(addons).whenComplete((a, t) -> {
