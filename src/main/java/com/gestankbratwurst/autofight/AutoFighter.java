@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
-import net.runelite.api.Item;
 import net.runelite.api.ItemID;
 import net.runelite.api.KeyCode;
 import net.runelite.api.MenuAction;
@@ -123,8 +122,10 @@ public class AutoFighter {
       return;
     }
     if (client.getLocalPlayer().getInteracting() == actor) {
-      EnvironmentUtils.enqueueNearbyGroundItems(client, this::isValuable);
-      if(++killCounter == KILLS_BEFORE_HAUL) {
+      if (addons.getConfig().pickupItemsOnFight()) {
+        EnvironmentUtils.enqueueNearbyGroundItems(client, this::isValuable);
+      }
+      if (addons.getConfig().pickupItemsOnFight() && ++killCounter == KILLS_BEFORE_HAUL) {
         killCounter = 0;
         EnvironmentUtils.haulAllItems(addons).whenComplete((a, t) -> {
           if (t != null) {

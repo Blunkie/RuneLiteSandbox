@@ -39,7 +39,6 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
-import shortestpath.ShortestPathPlugin;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -67,6 +66,7 @@ public class RuneLiteAddons extends Plugin {
   @Inject
   private Client client;
 
+  @Getter
   @Inject
   private RuneLiteAdddonsConfig config;
 

@@ -14,7 +14,8 @@ public class ItemUtils {
   private static final Set<Integer> FOOD_IDS = Set.of(
           ItemID.SALMON,
           ItemID.COOKED_CHICKEN,
-          ItemID.TROUT
+          ItemID.TROUT,
+          ItemID.SHRIMPS
   );
 
   static {

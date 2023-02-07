@@ -14,4 +14,12 @@ public interface RuneLiteAdddonsConfig extends Config {
   default double maxOreDistance() {
     return 2.0;
   }
+  @ConfigItem(
+          keyName = "pickup-item-on-fight",
+          name = "Items beim Kämpfen aufheben",
+          description = "Ob beim autokampf items aufgehoben werden."
+  )
+  default boolean pickupItemsOnFight() {
+    return true;
+  }
 }
