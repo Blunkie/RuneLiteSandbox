@@ -13,7 +13,8 @@ public class ItemUtils {
   private static final Set<Integer> BIRD_NEST_IDS;
   private static final Set<Integer> FOOD_IDS = Set.of(
           ItemID.SALMON,
-          ItemID.COOKED_CHICKEN
+          ItemID.COOKED_CHICKEN,
+          ItemID.TROUT
   );
 
   static {
