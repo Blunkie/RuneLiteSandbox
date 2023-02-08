@@ -1,6 +1,7 @@
 package com.gestankbratwurst;
 
 import com.gestankbratwurst.autofight.AutoFighter;
+import com.gestankbratwurst.autoharvester.AutoMiner;
 import com.gestankbratwurst.autoharvester.AutoWoodcutter;
 import com.gestankbratwurst.mousemovement.MouseAgent;
 import com.gestankbratwurst.simplewalk.SimpleWalker;
@@ -18,7 +19,6 @@ import net.runelite.api.GroundObject;
 import net.runelite.api.InventoryID;
 import net.runelite.api.ItemID;
 import net.runelite.api.KeyCode;
-import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.ObjectComposition;
 import net.runelite.api.Tile;
@@ -89,6 +89,9 @@ public class RuneLiteAddons extends Plugin {
   private AutoWoodcutter autoWoodcutter;
 
   @Getter
+  private AutoMiner autoMiner;
+
+  @Getter
   private SimpleWalker simpleWalker;
 
   private void initAfterLogin() {
@@ -96,6 +99,7 @@ public class RuneLiteAddons extends Plugin {
     autoFighter = new AutoFighter(this);
     autoWoodcutter = new AutoWoodcutter(this);
     simpleWalker = new SimpleWalker(this);
+    autoMiner = new AutoMiner(this);
     // EnvironmentUtils.startPickupLoop(this);
   }
 
@@ -140,6 +144,9 @@ public class RuneLiteAddons extends Plugin {
     if (event.getItemContainer().getId() == InventoryID.INVENTORY.getId() && autoWoodcutter != null) {
       autoWoodcutter.notifyInventoryUpdate();
     }
+    if (event.getItemContainer().getId() == InventoryID.INVENTORY.getId() && autoMiner != null) {
+      autoMiner.notifyInventoryUpdate();
+    }
   }
 
   @Subscribe
@@ -147,9 +154,10 @@ public class RuneLiteAddons extends Plugin {
     if (autoWoodcutter != null && event.getActor().equals(client.getLocalPlayer())) {
       autoWoodcutter.notifyActionChange();
     }
+    if (autoMiner != null && event.getActor().equals(client.getLocalPlayer())) {
+      autoMiner.notifyActionChange();
+    }
   }
-
-  private boolean stored = false;
 
   @Subscribe
   public void onClientTick(ClientTick tick) {
@@ -163,17 +171,10 @@ public class RuneLiteAddons extends Plugin {
       task.completeOnCurrentThread();
     }
 
-    if (client.isKeyPressed(KeyCode.KC_V)) {
-      if (stored) {
-        return;
-      }
-      stored = true;
-      autoWoodcutter.debugDeposit().thenRun(() -> System.out.println("Stored everything"));
-    }
-
     if (client.isKeyPressed(KeyCode.KC_X)) {
       autoFighter.stop();
       autoWoodcutter.stop();
+      autoMiner.stop();
       simpleWalker.stop();
     }
 
@@ -251,9 +252,17 @@ public class RuneLiteAddons extends Plugin {
       return;
     }
 
+    if (autoMiner != null) {
+      autoMiner.injectWoodcuttingOption(event);
+    } else {
+      return;
+    }
+
+    /*
     if (event.getType() != MenuAction.EXAMINE_OBJECT.getId() || !client.isKeyPressed(KeyCode.KC_SHIFT)) {
       return;
     }
+
 
     final Tile tile = client.getScene().getTiles()[client.getPlane()][event.getActionParam0()][event.getActionParam1()];
     final TileObject tileObject = findTileObject(tile, event.getIdentifier());
@@ -270,6 +279,7 @@ public class RuneLiteAddons extends Plugin {
             .setIdentifier(event.getIdentifier())
             .setType(MenuAction.RUNELITE)
             .onClick(this::mineClickAction);
+     */
   }
 
   private void mineClickAction(MenuEntry entry) {

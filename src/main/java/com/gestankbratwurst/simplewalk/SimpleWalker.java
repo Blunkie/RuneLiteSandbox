@@ -75,7 +75,6 @@ public class SimpleWalker {
     int y = currentTravel.nextArea.getY();
     EnvironmentUtils.findExactTile(client, tile -> tile.getWorldLocation().getX() == x && tile.getWorldLocation().getY() == y)
             .ifPresentOrElse((tile) -> {
-
               Shape shape;
               TileObject groundObject = tile.getGroundObject();
               if (groundObject == null) {

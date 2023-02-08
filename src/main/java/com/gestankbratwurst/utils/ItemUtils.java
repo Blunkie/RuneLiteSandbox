@@ -15,7 +15,9 @@ public class ItemUtils {
           ItemID.SALMON,
           ItemID.COOKED_CHICKEN,
           ItemID.TROUT,
-          ItemID.SHRIMPS
+          ItemID.SHRIMPS,
+          ItemID.SARDINE,
+          ItemID.COOKED_MEAT
   );
 
   static {
