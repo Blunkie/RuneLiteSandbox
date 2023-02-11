@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 public class Pathfinder implements Runnable {
     @Getter
@@ -32,16 +33,16 @@ public class Pathfinder implements Runnable {
 
     @Getter
     private List<WorldPoint> path = new ArrayList<>();
-    @Getter
-    private boolean done = false;
 
     public Pathfinder(PathfinderConfig config, WorldPoint start, WorldPoint target) {
         this.config = config;
         this.start = start;
         this.target = target;
         this.config.refresh();
+    }
 
-        new Thread(this).start();
+    public CompletableFuture<Void> calculatePath() {
+        return CompletableFuture.runAsync(this);
     }
 
     private void addNeighbor(Node node, WorldPoint neighbor, int wait) {
@@ -129,7 +130,6 @@ public class Pathfinder implements Runnable {
             addNeighbors(node);
         }
 
-        done = true;
         boundary.clear();
         visited.clear();
         pending.clear();

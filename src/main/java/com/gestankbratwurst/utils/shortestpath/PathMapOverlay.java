@@ -86,7 +86,7 @@ public class PathMapOverlay extends Overlay {
         }
 
         if (plugin.getPathfinder() != null) {
-            Color colour = plugin.getPathfinder().isDone() ? config.colourPath() : config.colourPathCalculating();
+            Color colour = config.colourPathCalculating();
             List<WorldPoint> path = plugin.getPathfinder().getPath();
             for (int i = 0; i < path.size(); i++) {
                 graphics.setColor(colour);

@@ -12,7 +12,15 @@ public interface RuneLiteAdddonsConfig extends Config {
           description = "Wie weit entfernt ein Erz sein darf, um drauf zu klicken."
   )
   default double maxOreDistance() {
-    return 2.0;
+    return 3.0;
+  }
+  @ConfigItem(
+          keyName = "max-tree-distance",
+          name = "Maximale Baum Reichweite",
+          description = "Wie weit entfernt ein Baum sein darf, um drauf zu klicken."
+  )
+  default double maxTreeDistance() {
+    return 16.0;
   }
   @ConfigItem(
           keyName = "pickup-item-on-fight",
@@ -21,5 +29,14 @@ public interface RuneLiteAdddonsConfig extends Config {
   )
   default boolean pickupItemsOnFight() {
     return true;
+  }
+
+  @ConfigItem(
+          keyName = "max-idle-for-retry",
+          name = "Mining: Max idle für retry",
+          description = "Wie lange in millis gewartet wird, bis ein neuer mining versuch gestartet wird."
+  )
+  default int maxIdleForRetryMining() {
+    return 3000;
   }
 }

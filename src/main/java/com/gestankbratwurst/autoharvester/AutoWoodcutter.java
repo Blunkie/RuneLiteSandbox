@@ -1,22 +1,21 @@
 package com.gestankbratwurst.autoharvester;
 
-import com.gestankbratwurst.CompletionTask;
 import com.gestankbratwurst.RuneLiteAddons;
 import com.gestankbratwurst.mousemovement.MouseAgent;
 import com.gestankbratwurst.utils.EnvironmentUtils;
 import com.gestankbratwurst.utils.InventoryUtils;
 import com.gestankbratwurst.utils.ItemUtils;
 import com.gestankbratwurst.utils.ShapeUtils;
+import net.runelite.api.AnimationID;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameObject;
-import net.runelite.api.ItemID;
 import net.runelite.api.KeyCode;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
-import net.runelite.api.ObjectID;
 import net.runelite.api.SoundEffectID;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.events.AnimationChanged;
 import net.runelite.api.events.MenuEntryAdded;
 
 import java.awt.Point;
@@ -29,26 +28,40 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AutoWoodcutter {
 
-  private static final int MAX_DISTANCE = 16;
+  private static boolean created = false;
 
   private final Set<Integer> currentObjectTargets = new HashSet<>();
   private final RuneLiteAddons addons;
   private final Client client;
-  private boolean active = false;
+  private final AtomicBoolean active = new AtomicBoolean(false);
+  private int initialId = -1;
+  private WorldPoint startPoint = null;
+  private long lastAction = System.currentTimeMillis();
 
   public AutoWoodcutter(RuneLiteAddons addons) {
+    if(created) {
+      throw new RuntimeException("Instantiated multiple auto woodcutters.");
+    }
+    created = true;
     this.client = addons.getClient();
     this.addons = addons;
   }
 
   public void start(int id) {
+    if (!active.get()) {
+      System.out.println("> Woodcutter started");
+    } else {
+      return;
+    }
+    active.set(true);
+    initialId = id;
     currentObjectTargets.clear();
     Arrays.stream(ObjectIdGroups.groupOrId(id)).forEach(currentObjectTargets::add);
-    active = true;
-    chopNextTree();
+    addons.runSync(this::cutNextTree);
   }
 
   public void injectWoodcuttingOption(MenuEntryAdded event) {
@@ -67,101 +80,127 @@ public class AutoWoodcutter {
   }
 
   public void stop() {
-    active = false;
+    if (active.get()) {
+      System.out.println("> Woodcutter stopped");
+    } else {
+      return;
+    }
+    active.set(false);
+  }
+
+  public void nextTick() {
+    if (!active.get()) {
+      return;
+    }
+    if (addons.getClient().getLocalPlayer().getAnimation() != AnimationID.IDLE) {
+      lastAction = System.currentTimeMillis();
+    }
+    if (System.currentTimeMillis() - lastAction > addons.getConfig().maxIdleForRetryMining()) {
+      checkForRetry();
+    }
+  }
+
+  private void checkForRetry() {
+    inventoryCheck();
+    lastAction = System.currentTimeMillis();
   }
 
   public void notifyInventoryUpdate() {
-    if (!active) {
+    if (!active.get()) {
       return;
     }
+    lastAction = System.currentTimeMillis();
+    inventoryCheck();
+  }
+
+  private void inventoryCheck() {
     if (InventoryUtils.isFull(client)) {
       client.playSoundEffect(SoundEffectID.UI_BOOP);
-      client.addChatMessage(ChatMessageType.GAMEMESSAGE, "FlosSandbox", "Inventar ist voll. Autobank funkt noch nicht :(", "FlosSandbox");
+      client.addChatMessage(ChatMessageType.GAMEMESSAGE, "FlosSandbox", "Laufe zur Bank...", "FlosSandbox");
       stop();
-      debugWalkToChest().thenRun(() -> {
-        debugDeposit().thenRun(() -> {
-          debugWalkToTree().thenRun(() -> {
-            active = true;
-            chopNextTree();
-          });
-        });
-      });
-    }
-  }
-
-  public void notifyActionChange() {
-    if (!active) {
-      return;
-    }
-    addons.addTask(2, this::chopNextTree);
-  }
-
-  private CompletableFuture<Void> checkForBirdsNest() {
-    EnvironmentUtils.enqueueNearbyGroundItems(client, item -> ItemUtils.isBirdsNest(item.getId()));
-    return EnvironmentUtils.haulAllItems(addons);
-  }
-
-  private CompletableFuture<Void> debugWalkToChest() {
-    WorldPoint worldPoint = new WorldPoint(2443, 3083, client.getPlane());
-    return addons.getSimpleWalker().walkTo(worldPoint, 4).thenApply(any -> null);
-  }
-
-  public CompletableFuture<Void> debugDeposit() {
-    CompletableFuture<Void> future = new CompletableFuture<>();
-    EnvironmentUtils.findObjects(client, 8, obj -> obj.getId() == ObjectID.BANK_CHEST_4483).stream().findAny().ifPresentOrElse(chest -> {
-      Point point = ShapeUtils.selectRandomPointIn(chest.getClickbox());
-      CompletableFuture.runAsync(() -> {
-        addons.getMouseAgent().moveMouseTo(point);
+      startPoint = client.getLocalPlayer().getWorldLocation();
+      addons.getPathTravel().travelTo(new WorldPoint(3183, 3444, 0)).thenRun(() -> {
         try {
-          addons.getMouseAgent().leftClick().get(5, TimeUnit.SECONDS);
-          Thread.sleep(ThreadLocalRandom.current().nextInt(1200, 1500));
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+          Thread.sleep(1500);
+        } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
-        InventoryUtils.emptyIntoBank(client, addons.getMouseAgent(), ItemID.TEAK_LOGS).thenRun(() -> future.complete(null));
+        if (EnvironmentUtils.openNearbyBankBooth(client, addons, addons.getMouseAgent(), 5).join()) {
+          try {
+            Thread.sleep(666);
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+          }
+          InventoryUtils.emptyIntoBank(addons.getClient(), addons.getMouseAgent(), ItemUtils.getLogIds()).join();
+        } else {
+          throw new IllegalStateException("Could not open nearby bank booths");
+        }
+      }).thenRun(() -> {
+        addons.getPathTravel().travelTo(startPoint).join();
+        try {
+          Thread.sleep(ThreadLocalRandom.current().nextInt(750, 1250));
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+        start(initialId);
+      }).whenComplete((v, t) -> {
+        if (t != null) {
+          t.printStackTrace();
+        }
       });
-    }, () -> System.out.println("! Could not find chest..."));
-    return future;
+    } else {
+      cutNextTree();
+    }
   }
 
-  private CompletableFuture<Void> debugWalkToTree() {
-    WorldPoint worldPoint = new WorldPoint(2335, 3048, client.getPlane());
-    return addons.getSimpleWalker().walkTo(worldPoint, 4).thenApply(any -> null);
+  public void notifyActionChange(AnimationChanged event) {
+    if (!active.get()) {
+      return;
+    }
+    if (addons.getClient().getLocalPlayer().getAnimation() != AnimationID.IDLE) {
+      lastAction = System.currentTimeMillis();
+      // addons.addTask(2, this::mineNextRock);
+    }
   }
 
-  private void chopNextTree() {
-    if (!active) {
+  private void cutNextTree() {
+    if (!active.get()) {
       return;
     }
 
     System.out.println("> Cut next tree: " + Arrays.toString(this.currentObjectTargets.toArray()));
 
-    checkForBirdsNest().thenRun(() -> addons.runSync(() -> {
-      WorldPoint currentPoint = client.getLocalPlayer().getWorldLocation();
-      EnvironmentUtils.findObjects(client, MAX_DISTANCE, obj -> currentObjectTargets.contains(obj.getId()))
-              .stream()
-              .min(Comparator.comparingInt(obj -> obj.getWorldLocation().distanceTo(currentPoint)))
-              .ifPresentOrElse(this::chopTree, this::lookAroundAndTryAgain);
-    }));
+    WorldPoint currentPoint = client.getLocalPlayer().getWorldLocation();
+    int woodDist = (int) addons.getConfig().maxTreeDistance();
+
+    EnvironmentUtils.findObjects(client, woodDist, obj -> currentObjectTargets.contains(obj.getId()))
+            .stream()
+            .min(Comparator.comparingInt(obj -> obj.getWorldLocation().distanceTo(currentPoint)))
+            .ifPresentOrElse(this::cutTree, this::lookAroundAndTryAgain);
   }
 
   private void lookAroundAndTryAgain() {
-    if (!active) {
+    if (!active.get()) {
       return;
     }
+    System.out.println("> Look around and try again");
     CompletableFuture.runAsync(() -> {
       try {
         addons.getMouseAgent().randomCamMove(2.0).get(5, TimeUnit.SECONDS);
       } catch (InterruptedException | ExecutionException | TimeoutException e) {
         e.printStackTrace();
       } finally {
-        addons.addTask(2, this::chopNextTree);
+        addons.addTask(2, this::cutNextTree);
+      }
+    }).whenComplete((v, t) -> {
+      if (t != null) {
+        t.printStackTrace();
       }
     });
   }
 
-  private void chopTree(GameObject tree) {
-    if (!active) {
+  private void cutTree(GameObject tree) {
+    if (!active.get()) {
       return;
     }
     addons.runSync(() -> {
@@ -170,11 +209,16 @@ public class AutoWoodcutter {
       CompletableFuture.runAsync(() -> {
         agent.moveMouseTo(point);
         try {
+          lastAction = System.currentTimeMillis();
           agent.leftClick().get(5, TimeUnit.SECONDS);
           Thread.sleep(ThreadLocalRandom.current().nextInt(200, 300));
           agent.randomCamMove().get();
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
           throw new RuntimeException(e);
+        }
+      }).whenComplete((v, t) -> {
+        if (t != null) {
+          t.printStackTrace();
         }
       });
     });

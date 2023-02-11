@@ -83,18 +83,6 @@ public class ShortestPathPlugin extends Plugin {
   private OverlayManager overlayManager;
 
   @Inject
-  private PathTileOverlay pathOverlay;
-
-  @Inject
-  private PathMinimapOverlay pathMinimapOverlay;
-
-  @Inject
-  private PathMapOverlay pathMapOverlay;
-
-  @Inject
-  private PathMapTooltipOverlay pathMapTooltipOverlay;
-
-  @Inject
   private SpriteManager spriteManager;
 
   @Inject
@@ -128,22 +116,15 @@ public class ShortestPathPlugin extends Plugin {
   @Override
   protected void startUp() {
     CollisionMap map = CollisionMap.fromResources();
-    Map<WorldPoint, List<Transport>> transports = Transport.fromResources(config);
+    Map<WorldPoint, List<Transport>> transports = Transport.fromResources();
 
-    pathfinderConfig = new PathfinderConfig(map, transports, client, config, this);
+    // pathfinderConfig = new PathfinderConfig(map, transports, client, config, this);
 
-    overlayManager.add(pathOverlay);
-    overlayManager.add(pathMinimapOverlay);
-    overlayManager.add(pathMapOverlay);
-    overlayManager.add(pathMapTooltipOverlay);
   }
 
   @Override
   protected void shutDown() {
-    overlayManager.remove(pathOverlay);
-    overlayManager.remove(pathMinimapOverlay);
-    overlayManager.remove(pathMapOverlay);
-    overlayManager.remove(pathMapTooltipOverlay);
+
   }
 
   @Subscribe
@@ -157,7 +138,7 @@ public class ShortestPathPlugin extends Plugin {
             "useFairyRings".equals(event.getKey()) || "useTeleports".equals(event.getKey());
 
     if (reloadTransports) {
-      Map<WorldPoint, List<Transport>> transports = Transport.fromResources(config);
+      Map<WorldPoint, List<Transport>> transports = Transport.fromResources();
       pathfinderConfig.getTransports().clear();
       pathfinderConfig.getTransports().putAll(transports);
     }

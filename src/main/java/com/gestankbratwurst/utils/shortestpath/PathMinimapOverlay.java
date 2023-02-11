@@ -45,7 +45,7 @@ public class PathMinimapOverlay extends Overlay {
         graphics.setClip(plugin.getMinimapClipArea());
 
         List<WorldPoint> pathPoints = plugin.getPathfinder().getPath();
-        Color pathColor = plugin.getPathfinder().isDone() ? config.colourPath() : config.colourPathCalculating();
+        Color pathColor = Color.BLACK;
         for (WorldPoint pathPoint : pathPoints) {
             if (pathPoint.getPlane() != client.getPlane()) {
                 continue;

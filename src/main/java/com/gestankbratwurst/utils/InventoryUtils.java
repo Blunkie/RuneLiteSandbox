@@ -11,8 +11,10 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -46,7 +48,16 @@ public class InventoryUtils {
     return true;
   }
 
+  public static CompletableFuture<Void> emptyIntoBank(Client client, MouseAgent agent, List<Integer> ids) {
+    int[] idsArray = new int[ids.size()];
+    for(int i = 0; i < ids.size(); i++) {
+      idsArray[i] = ids.get(i);
+    }
+    return emptyIntoBank(client, agent, idsArray);
+  }
+
   public static CompletableFuture<Void> emptyIntoBank(Client client, MouseAgent agent, int... itemIds) {
+    System.out.println("> Empty into bank");
     Set<Integer> ids = new HashSet<>(itemIds.length);
     Map<Integer, Point> firstCaught = new HashMap<>();
     Arrays.stream(itemIds).forEach(ids::add);
@@ -56,7 +67,7 @@ public class InventoryUtils {
     }
     for (int i = 0; i < INVENTORY_SLOTS; i++) {
       Widget slot = inventory.getChild(i);
-      if (ids.contains(slot.getItemId()) && !firstCaught.containsKey(slot.getItemId())) {
+      if (slot != null && ids.contains(slot.getItemId()) && !firstCaught.containsKey(slot.getItemId())) {
         firstCaught.put(slot.getItemId(), ShapeUtils.selectRandomPointIn(slot.getBounds()));
       }
     }
@@ -66,6 +77,7 @@ public class InventoryUtils {
         agent.leftClick();
       }
       try {
+        Thread.sleep(333);
         agent.pressKey(KeyEvent.VK_ESCAPE).get(10, TimeUnit.SECONDS);
       } catch (InterruptedException | ExecutionException | TimeoutException e) {
         e.printStackTrace();
@@ -176,7 +188,7 @@ public class InventoryUtils {
         Rectangle area = child.getBounds();
         Point point = ShapeUtils.selectRandomPointIn(area);
         try {
-          mouseAgent.moveMouseTo(point).get(5, TimeUnit.SECONDS);
+          mouseAgent.moveMouseTo(point);
           mouseAgent.leftClick().get(5, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
           throw new RuntimeException(e);

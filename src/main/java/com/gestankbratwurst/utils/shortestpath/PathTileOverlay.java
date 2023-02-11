@@ -20,6 +20,7 @@ import java.awt.Polygon;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class PathTileOverlay extends Overlay {
     private final Client client;
@@ -113,7 +114,7 @@ public class PathTileOverlay extends Overlay {
 
         if (config.drawTiles() && plugin.getPathfinder() != null && plugin.getPathfinder().getPath() != null) {
             Color color;
-            if (plugin.getPathfinder().isDone()) {
+            if (ThreadLocalRandom.current().nextBoolean()) {
                 color = new Color(
                     config.colourPath().getRed(),
                     config.colourPath().getGreen(),

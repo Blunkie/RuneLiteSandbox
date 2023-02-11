@@ -1,5 +1,6 @@
 package com.gestankbratwurst.utils.shortestpath;
 
+import com.gestankbratwurst.RuneLiteAddons;
 import com.google.common.base.Strings;
 import lombok.Getter;
 import net.runelite.api.Quest;
@@ -137,9 +138,9 @@ public class Transport {
         return null;
     }
 
-    private static void addTransports(Map<WorldPoint, List<Transport>> transports, ShortestPathConfig config, String path, TransportType transportType) {
+    private static void addTransports(Map<WorldPoint, List<Transport>> transports, String path, TransportType transportType) {
         try {
-            String s = new String(Util.readAllBytes(ShortestPathPlugin.class.getResourceAsStream(path)), StandardCharsets.UTF_8);
+            String s = new String(Util.readAllBytes(RuneLiteAddons.class.getResourceAsStream(path)), StandardCharsets.UTF_8);
             Scanner scanner = new Scanner(s);
             List<WorldPoint> fairyRings = new ArrayList<>();
             List<String> fairyRingsQuestNames = new ArrayList<>();
@@ -158,10 +159,10 @@ public class Transport {
                     Transport transport = new Transport(line);
                     transport.isBoat = TransportType.BOAT.equals(transportType);
                     transport.isTeleport = TransportType.TELEPORT.equals(transportType);
-                    if (!config.useAgilityShortcuts() && transport.isAgilityShortcut) {
+                    if (/*!config.useAgilityShortcuts() && */transport.isAgilityShortcut) {
                         continue;
                     }
-                    if (!config.useGrappleShortcuts() && transport.isGrappleShortcut) {
+                    if (/*!config.useGrappleShortcuts() && */transport.isGrappleShortcut) {
                         continue;
                     }
                     WorldPoint origin = transport.getOrigin();
@@ -188,11 +189,12 @@ public class Transport {
         }
     }
 
-    public static HashMap<WorldPoint, List<Transport>> fromResources(ShortestPathConfig config) {
+    public static HashMap<WorldPoint, List<Transport>> fromResources() {
         HashMap<WorldPoint, List<Transport>> transports = new HashMap<>();
 
-        addTransports(transports, config, "/transports.txt", TransportType.TRANSPORT);
+        addTransports(transports, "/transports.txt", TransportType.TRANSPORT);
 
+        /*
         if (config.useBoats()) {
             addTransports(transports, config, "/boats.txt", TransportType.BOAT);
         }
@@ -204,6 +206,7 @@ public class Transport {
         if (config.useTeleports()) {
             addTransports(transports, config, "/teleports.txt", TransportType.TELEPORT);
         }
+         */
 
         return transports;
     }

@@ -4,8 +4,12 @@ import com.gestankbratwurst.autofight.AutoFighter;
 import com.gestankbratwurst.autoharvester.AutoMiner;
 import com.gestankbratwurst.autoharvester.AutoWoodcutter;
 import com.gestankbratwurst.mousemovement.MouseAgent;
+import com.gestankbratwurst.simplewalk.PathTravel;
+import com.gestankbratwurst.simplewalk.PathTravelOverlay;
 import com.gestankbratwurst.simplewalk.SimpleWalker;
 import com.gestankbratwurst.utils.EnvironmentUtils;
+import com.gestankbratwurst.utils.InventoryUtils;
+import com.gestankbratwurst.utils.ItemUtils;
 import com.gestankbratwurst.utils.Rock;
 import com.google.inject.Provides;
 import lombok.Getter;
@@ -17,7 +21,6 @@ import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
 import net.runelite.api.GroundObject;
 import net.runelite.api.InventoryID;
-import net.runelite.api.ItemID;
 import net.runelite.api.KeyCode;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.ObjectComposition;
@@ -94,12 +97,25 @@ public class RuneLiteAddons extends Plugin {
   @Getter
   private SimpleWalker simpleWalker;
 
+  @Getter
+  private PathTravel pathTravel;
+
   private void initAfterLogin() {
-    mouseAgent = new MouseAgent(client);
-    autoFighter = new AutoFighter(this);
-    autoWoodcutter = new AutoWoodcutter(this);
-    simpleWalker = new SimpleWalker(this);
-    autoMiner = new AutoMiner(this);
+    if (mouseAgent == null) {
+      mouseAgent = new MouseAgent(client);
+    }
+    if (autoFighter == null) {
+      autoFighter = new AutoFighter(this);
+    }
+    if (autoWoodcutter == null) {
+      autoWoodcutter = new AutoWoodcutter(this);
+    }
+    if (simpleWalker == null) {
+      simpleWalker = new SimpleWalker(this);
+    }
+    if (autoMiner == null) {
+      autoMiner = new AutoMiner(this);
+    }
     // EnvironmentUtils.startPickupLoop(this);
   }
 
@@ -120,8 +136,10 @@ public class RuneLiteAddons extends Plugin {
 
   @Override
   protected void startUp() {
+    pathTravel = new PathTravel(this);
     overlayManager.add(inventoryOverlay);
-    overlayManager.add(oreOverlay);
+    // overlayManager.add(oreOverlay);
+    overlayManager.add(new PathTravelOverlay(this));
     log.info("> RuneLiteSandbox started!");
   }
 
@@ -152,10 +170,10 @@ public class RuneLiteAddons extends Plugin {
   @Subscribe
   public void onAnimationChanged(AnimationChanged event) {
     if (autoWoodcutter != null && event.getActor().equals(client.getLocalPlayer())) {
-      autoWoodcutter.notifyActionChange();
+      autoWoodcutter.notifyActionChange(event);
     }
     if (autoMiner != null && event.getActor().equals(client.getLocalPlayer())) {
-      autoMiner.notifyActionChange();
+      autoMiner.notifyActionChange(event);
     }
   }
 
@@ -176,20 +194,12 @@ public class RuneLiteAddons extends Plugin {
       autoWoodcutter.stop();
       autoMiner.stop();
       simpleWalker.stop();
+      pathTravel.stop();
     }
 
     if (client.isKeyPressed(KeyCode.KC_V) && allowPick) {
       allowPick = false;
-      EnvironmentUtils.enqueueNearbyGroundItems(client, item -> item.getId() == ItemID.CABBAGE);
-      CompletableFuture.runAsync(() -> {
-        try {
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-        } finally {
-          allowPick = true;
-        }
-      });
+      EnvironmentUtils.openNearbyBankBooth(getClient(), this, getMouseAgent(), 12).thenRun(() -> InventoryUtils.emptyIntoBank(getClient(), getMouseAgent(), ItemUtils.getOreIds()));
     }
   }
 
@@ -199,6 +209,15 @@ public class RuneLiteAddons extends Plugin {
     pendingAddTasks.clear();
     if (simpleWalker != null) {
       simpleWalker.nextTick();
+    }
+    if (pathTravel != null) {
+      pathTravel.nextTick();
+    }
+    if (autoMiner != null) {
+      autoMiner.nextTick();
+    }
+    if(autoWoodcutter != null) {
+      autoWoodcutter.nextTick();
     }
     tasks.removeIf(task -> {
       if (task == null) {

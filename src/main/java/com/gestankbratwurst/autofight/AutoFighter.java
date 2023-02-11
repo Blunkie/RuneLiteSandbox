@@ -14,6 +14,7 @@ import net.runelite.api.ItemID;
 import net.runelite.api.KeyCode;
 import net.runelite.api.MenuAction;
 import net.runelite.api.NPC;
+import net.runelite.api.Player;
 import net.runelite.api.TileItem;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.MenuEntryAdded;
@@ -95,6 +96,7 @@ public class AutoFighter {
             .filter(Objects::nonNull)
             .filter(npc -> !npc.isDead())
             .filter(npc -> selectedTypes.contains(npc.getId()))
+            .filter(npc -> npc.getInteracting() == null)
             .min(Comparator.comparingInt(npc -> npc.getWorldLocation().distanceTo(current)))
             .ifPresentOrElse(this::attackNpc, this::attackNextTick);
   }

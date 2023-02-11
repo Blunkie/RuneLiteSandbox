@@ -1,5 +1,6 @@
 package com.gestankbratwurst.utils.shortestpath.pathfinder;
 
+import com.gestankbratwurst.RuneLiteAddons;
 import com.gestankbratwurst.utils.shortestpath.ShortestPathConfig;
 import com.gestankbratwurst.utils.shortestpath.ShortestPathPlugin;
 import com.gestankbratwurst.utils.shortestpath.Transport;
@@ -27,8 +28,6 @@ public class PathfinderConfig {
     @Getter
     private final Map<WorldPoint, List<Transport>> transports;
     private final Client client;
-    private final ShortestPathConfig config;
-    private final ShortestPathPlugin plugin;
 
     private boolean avoidWilderness;
     private boolean useAgilityShortcuts;
@@ -42,14 +41,13 @@ public class PathfinderConfig {
     private int prayerLevel;
     private int woodcuttingLevel;
     private final Map<Quest, QuestState> questStates = new HashMap<>();
+    private final RuneLiteAddons addons;
 
-    public PathfinderConfig(CollisionMap map, Map<WorldPoint, List<Transport>> transports, Client client,
-                            ShortestPathConfig config, ShortestPathPlugin plugin) {
+    public PathfinderConfig(CollisionMap map, Map<WorldPoint, List<Transport>> transports, RuneLiteAddons addons) {
         this.map = map;
         this.transports = transports;
-        this.client = client;
-        this.config = config;
-        this.plugin = plugin;
+        this.addons = addons;
+        this.client = addons.getClient();
         refresh();
     }
 
@@ -57,18 +55,18 @@ public class PathfinderConfig {
         if (!GameState.LOGGED_IN.equals(client.getGameState())) {
             return;
         }
-        avoidWilderness = config.avoidWilderness();
-        useAgilityShortcuts = config.useAgilityShortcuts();
-        useGrappleShortcuts = config.useGrappleShortcuts();
-        useBoats = config.useBoats();
-        useFairyRings = config.useFairyRings();
-        useTeleports = config.useTeleports();
+        avoidWilderness = true;
+        useAgilityShortcuts = false;
+        useGrappleShortcuts = false;
+        useBoats = false;
+        useFairyRings = false;
+        useTeleports = false;
         agilityLevel = client.getBoostedSkillLevel(Skill.AGILITY);
         rangedLevel = client.getBoostedSkillLevel(Skill.RANGED);
         strengthLevel = client.getBoostedSkillLevel(Skill.STRENGTH);
         prayerLevel = client.getBoostedSkillLevel(Skill.PRAYER);
         woodcuttingLevel = client.getBoostedSkillLevel(Skill.WOODCUTTING);
-        plugin.getClientThread().invokeLater(this::refreshQuests);
+        addons.runSync(this::refreshQuests);
     }
 
     private void refreshQuests() {
@@ -94,11 +92,11 @@ public class PathfinderConfig {
     }
 
     public boolean isNear(WorldPoint location) {
-        if (plugin.isStartPointSet() || client.getLocalPlayer() == null) {
+        if (client.getLocalPlayer() == null) {
             return true;
         }
-        return config.recalculateDistance() < 0 ||
-               client.getLocalPlayer().getWorldLocation().distanceTo2D(location) <= config.recalculateDistance();
+        int recalculateDistance = 10;
+        return client.getLocalPlayer().getWorldLocation().distanceTo2D(location) <= recalculateDistance;
     }
 
     public boolean useTransport(Transport transport) {

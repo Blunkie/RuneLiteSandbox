@@ -9,6 +9,8 @@ import net.runelite.api.MenuAction;
 import net.runelite.api.Tile;
 import net.runelite.api.TileItem;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetInfo;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -105,6 +107,57 @@ public class EnvironmentUtils {
       }
     }
     return Optional.empty();
+  }
+
+
+  public static CompletableFuture<Boolean> openNearbyBankBooth(Client client, RuneLiteAddons addons, MouseAgent mouseAgent, int maxDist) {
+    return CompletableFuture.supplyAsync(() -> {
+      List<GameObject> booths = EnvironmentUtils.findObjects(client, maxDist, obj -> ObjectUtils.isBankBooth(obj.getId()));
+      if (booths.isEmpty()) {
+        new IllegalStateException("Could not find any nearby booths...").printStackTrace();
+        return false;
+      }
+      GameObject bankObject = booths.get(ThreadLocalRandom.current().nextInt(booths.size()));
+      Point point = ShapeUtils.selectRandomPointIn(bankObject.getClickbox());
+      mouseAgent.moveMouseTo(point);
+      try {
+        mouseAgent.leftClick().get(5, TimeUnit.SECONDS);
+      } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        throw new RuntimeException(e);
+      }
+
+      for (int i = 0; i < 200; i++) {
+        Widget inventory = client.getWidget(WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER);
+        if (i > 0 && i % 25 == 0) {
+          point = ShapeUtils.selectRandomPointIn(bankObject.getClickbox());
+          if(point == null) {
+            continue;
+          }
+          mouseAgent.moveMouseTo(point);
+          try {
+            mouseAgent.leftClick().get(5, TimeUnit.SECONDS);
+          } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new RuntimeException(e);
+          }
+        }
+        if (inventory == null || addons.supplySync(inventory::isHidden).join()) {
+          try {
+            Thread.sleep(100);
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+          }
+        } else {
+          System.out.println("> Opened bank booth!");
+          return true;
+        }
+      }
+
+      return false;
+    }).whenComplete((v, t) -> {
+      if (t != null) {
+        t.printStackTrace();
+      }
+    });
   }
 
   // TODO: Better performance by getting delta position of player until max distance

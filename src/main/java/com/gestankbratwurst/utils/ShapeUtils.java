@@ -10,6 +10,10 @@ public class ShapeUtils {
   public static Point selectRandomPointIn(Shape region) {
     ThreadLocalRandom random = ThreadLocalRandom.current();
 
+    if(region == null) {
+      return null;
+    }
+
     if(region instanceof Rectangle) {
       Rectangle boundRect = (Rectangle) region;
       double x = boundRect.x + random.nextDouble(0.0001, boundRect.width);
