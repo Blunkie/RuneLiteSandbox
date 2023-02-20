@@ -9,6 +9,7 @@ import com.gestankbratwurst.utils.ShapeUtils;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.Actor;
+import net.runelite.api.AnimationID;
 import net.runelite.api.Client;
 import net.runelite.api.ItemID;
 import net.runelite.api.KeyCode;
@@ -42,6 +43,7 @@ public class AutoFighter {
   @Setter
   private double minHealthPercentage = 0.5;
   private boolean eating = false;
+  private long lastAction = System.currentTimeMillis();
 
 
   public AutoFighter(RuneLiteAddons addons) {
@@ -55,6 +57,19 @@ public class AutoFighter {
     attackNextTick();
     foodLoop();
     System.out.println("> Auto fighter started");
+  }
+
+  public void nextTick() {
+    if(client.getLocalPlayer().getAnimation() != AnimationID.IDLE) {
+      lastAction = System.currentTimeMillis();
+    }
+
+    long actionDelta = System.currentTimeMillis() - lastAction;
+
+    if(actionDelta > 3000) {
+      System.out.println("> Idled for too long");
+      attackNextNpc();
+    }
   }
 
   private double getHealth() {

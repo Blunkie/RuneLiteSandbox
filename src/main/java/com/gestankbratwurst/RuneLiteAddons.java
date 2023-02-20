@@ -219,6 +219,9 @@ public class RuneLiteAddons extends Plugin {
     if(autoWoodcutter != null) {
       autoWoodcutter.nextTick();
     }
+    if(autoFighter != null) {
+      autoFighter.nextTick();
+    }
     tasks.removeIf(task -> {
       if (task == null) {
         return true;
