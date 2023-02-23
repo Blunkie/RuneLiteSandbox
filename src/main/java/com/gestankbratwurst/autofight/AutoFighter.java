@@ -66,7 +66,7 @@ public class AutoFighter {
 
     long actionDelta = System.currentTimeMillis() - lastAction;
 
-    if(actionDelta > 3000) {
+    if(actionDelta > 3000 && active) {
       System.out.println("> Idled for too long");
       attackNextNpc();
     }

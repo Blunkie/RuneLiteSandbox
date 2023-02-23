@@ -119,7 +119,8 @@ public class AutoMiner {
       client.addChatMessage(ChatMessageType.GAMEMESSAGE, "FlosSandbox", "Laufe zur Bank...", "FlosSandbox");
       stop();
       startPoint = client.getLocalPlayer().getWorldLocation();
-      addons.getPathTravel().travelTo(new WorldPoint(3253, 3420, 0)).thenRun(() -> {
+      // 3183 3420
+      addons.getPathTravel().travelTo(new WorldPoint(3183, 3436, 0)).thenRun(() -> {
         try {
           Thread.sleep(1500);
         } catch (InterruptedException e) {
