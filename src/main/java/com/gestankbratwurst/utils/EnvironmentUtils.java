@@ -17,6 +17,7 @@ import java.awt.Rectangle;
 import java.awt.Shape;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -117,7 +118,9 @@ public class EnvironmentUtils {
         new IllegalStateException("Could not find any nearby booths...").printStackTrace();
         return false;
       }
-      GameObject bankObject = booths.get(ThreadLocalRandom.current().nextInt(booths.size()));
+
+      //GameObject bankObject = booths.get(ThreadLocalRandom.current().nextInt(booths.size()));
+      GameObject bankObject = booths.stream().min(Comparator.comparingInt(booth -> booth.getWorldLocation().distanceTo(client.getLocalPlayer().getWorldLocation()))).orElse(booths.get(0));
       Point point = ShapeUtils.selectRandomPointIn(bankObject.getClickbox());
       mouseAgent.moveMouseTo(point);
       try {
