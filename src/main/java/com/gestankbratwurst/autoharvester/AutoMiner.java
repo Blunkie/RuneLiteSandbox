@@ -122,13 +122,13 @@ public class AutoMiner {
       // 3183 3420
       addons.getPathTravel().travelTo(new WorldPoint(3183, 3436, 0)).thenRun(() -> {
         try {
-          Thread.sleep(1500);
+          Thread.sleep(2500);
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
         if (EnvironmentUtils.openNearbyBankBooth(client, addons, addons.getMouseAgent(), 12).join()) {
           try {
-            Thread.sleep(666);
+            Thread.sleep(750);
           } catch (InterruptedException e) {
             throw new RuntimeException(e);
           }
@@ -139,7 +139,7 @@ public class AutoMiner {
       }).thenRun(() -> {
         addons.getPathTravel().travelTo(startPoint).join();
         try {
-          Thread.sleep(ThreadLocalRandom.current().nextInt(750, 1250));
+          Thread.sleep(ThreadLocalRandom.current().nextInt(2150, 3350));
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
