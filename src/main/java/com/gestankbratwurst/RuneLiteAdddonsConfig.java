@@ -39,4 +39,13 @@ public interface RuneLiteAdddonsConfig extends Config {
   default int maxIdleForRetryMining() {
     return 3000;
   }
+
+  @ConfigItem(
+          keyName = "use-fast-clicks",
+          name = "Use fast mouse",
+          description = "Benutzt eine etwas schnellere Maus."
+  )
+  default boolean useFastMouse() {
+    return false;
+  }
 }

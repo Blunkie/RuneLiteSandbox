@@ -41,6 +41,7 @@ public class AutoMiner {
   private int initialId = -1;
   private WorldPoint startPoint = null;
   private long lastAction = System.currentTimeMillis();
+  private int retries = 0;
 
   public AutoMiner(RuneLiteAddons addons) {
     if(created) {
@@ -191,7 +192,7 @@ public class AutoMiner {
       } catch (InterruptedException | ExecutionException | TimeoutException e) {
         e.printStackTrace();
       } finally {
-        addons.addTask(2, this::mineNextRock);
+        addons.addTask(1 + Math.min(10, retries++), this::mineNextRock);
       }
     }).whenComplete((v, t) -> {
       if (t != null) {
@@ -204,6 +205,7 @@ public class AutoMiner {
     if (!active.get()) {
       return;
     }
+    retries = 0;
     addons.runSync(() -> {
       Point point = ShapeUtils.selectRandomPointIn(rock.getClickbox());
       MouseAgent agent = addons.getMouseAgent();

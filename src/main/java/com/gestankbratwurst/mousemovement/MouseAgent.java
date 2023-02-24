@@ -1,5 +1,6 @@
 package com.gestankbratwurst.mousemovement;
 
+import com.gestankbratwurst.RuneLiteAddons;
 import com.github.joonasvali.naturalmouse.api.MouseMotionFactory;
 import com.github.joonasvali.naturalmouse.support.MouseMotionNature;
 import com.github.joonasvali.naturalmouse.support.ScreenAdjustedNature;
@@ -27,9 +28,11 @@ public class MouseAgent {
   private final MouseMotionFactory motionFactory;
   private final Robot robot;
   private ExecutorService mouseExecutor = Executors.newSingleThreadExecutor();
+  private final RuneLiteAddons addons;
 
-  public MouseAgent(Client client) {
-    Canvas canvas = client.getCanvas();
+  public MouseAgent(RuneLiteAddons addons) {
+    this.addons = addons;
+    Canvas canvas = addons.getClient().getCanvas();
     Dimension screenSize = canvas.getSize();
     Point screenLoc = canvas.getLocationOnScreen();
     MouseMotionNature nature = new ScreenAdjustedNature(screenSize, screenLoc);
@@ -42,10 +45,14 @@ public class MouseAgent {
     }
   }
 
+  private MouseMotionFactory getMotionFactory() {
+    return addons.getConfig().useFastMouse() ? fastMotionFactory : motionFactory;
+  }
+
   public synchronized Future<Boolean> randomCamMove(double magnitude) {
     ThreadLocalRandom random = ThreadLocalRandom.current();
 
-    Point current = motionFactory.getMouseInfo().getMousePosition();
+    Point current = getMotionFactory().getMouseInfo().getMousePosition();
     Point point = new Point();
     point.x = current.x + random.nextInt((int) (-48 * magnitude), (int) (48 * magnitude));
     point.y = current.y + random.nextInt((int) (-12 * magnitude), (int) (16 * magnitude));
@@ -53,7 +60,7 @@ public class MouseAgent {
     return mouseExecutor.submit(() -> {
       try {
         robot.mousePress(InputEvent.BUTTON2_DOWN_MASK);
-        motionFactory.move(point.x, point.y);
+        getMotionFactory().move(point.x, point.y);
         robot.mouseRelease(InputEvent.BUTTON2_DOWN_MASK);
         return true;
       } catch (InterruptedException e) {
@@ -74,7 +81,7 @@ public class MouseAgent {
   public Future<Boolean> moveMouseTo(Point point) {
     return mouseExecutor.submit(() -> {
       try {
-        motionFactory.move(point.x, point.y);
+        getMotionFactory().move(point.x, point.y);
         return true;
       } catch (InterruptedException e) {
         return false;
