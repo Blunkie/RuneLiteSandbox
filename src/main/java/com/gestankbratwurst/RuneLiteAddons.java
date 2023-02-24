@@ -102,7 +102,7 @@ public class RuneLiteAddons extends Plugin {
 
   private void initAfterLogin() {
     if (mouseAgent == null) {
-      mouseAgent = new MouseAgent(client);
+      mouseAgent = new MouseAgent(this);
     }
     if (autoFighter == null) {
       autoFighter = new AutoFighter(this);
