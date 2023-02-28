@@ -53,7 +53,7 @@ public class AutoFighter {
 
   public void start() {
     active = true;
-    attackNextTick();
+    attackNextNpc();
     foodLoop();
     System.out.println("> Auto fighter started");
   }
@@ -123,7 +123,6 @@ public class AutoFighter {
     Point point = ShapeUtils.selectRandomPointIn(shape);
     mouseAgent.moveMouseTo(point);
     mouseAgent.leftClick();
-    checkForFightNextTick();
 
     System.out.println("> Attacking " + npc.getId());
   }
@@ -172,19 +171,6 @@ public class AutoFighter {
     addons.addTask(5, this::attackNextNpc);
   }
 
-  public void checkForFightNextTick() {
-    if (!active) {
-      return;
-    }
-    addons.addTask(7, () -> {
-      if (client.getLocalPlayer().getInteracting() == null) {
-        attackNextNpc();
-        System.out.println("> No combat detected");
-      } else {
-        mouseAgent.randomCamMove();
-      }
-    });
-  }
 
   private void initId(int id) {
     List<Integer> ids = new ArrayList<>();
