@@ -15,7 +15,6 @@ import net.runelite.api.ItemID;
 import net.runelite.api.KeyCode;
 import net.runelite.api.MenuAction;
 import net.runelite.api.NPC;
-import net.runelite.api.Player;
 import net.runelite.api.TileItem;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.MenuEntryAdded;
@@ -60,13 +59,13 @@ public class AutoFighter {
   }
 
   public void nextTick() {
-    if(client.getLocalPlayer().getAnimation() != AnimationID.IDLE) {
+    if (client.getLocalPlayer().getAnimation() != AnimationID.IDLE) {
       lastAction = System.currentTimeMillis();
     }
 
     long actionDelta = System.currentTimeMillis() - lastAction;
 
-    if(actionDelta > 3000 && active) {
+    if (actionDelta > 3000 && active) {
       System.out.println("> Idled for too long");
       attackNextNpc();
     }
@@ -162,7 +161,7 @@ public class AutoFighter {
       return;
     }
     System.out.println("> Attacking next tick");
-    addons.addTask(2, this::attackNextNpc);
+    addons.addTask(3, this::attackNextNpc);
   }
 
   public void attackLater() {
@@ -177,7 +176,7 @@ public class AutoFighter {
     if (!active) {
       return;
     }
-    addons.addTask(3, () -> {
+    addons.addTask(7, () -> {
       if (client.getLocalPlayer().getInteracting() == null) {
         attackNextNpc();
         System.out.println("> No combat detected");
