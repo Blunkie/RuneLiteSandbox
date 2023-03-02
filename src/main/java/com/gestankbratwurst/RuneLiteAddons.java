@@ -4,6 +4,7 @@ import com.gestankbratwurst.autofight.AutoFighter;
 import com.gestankbratwurst.autofight.SandcrabFighter;
 import com.gestankbratwurst.autoharvester.AutoMiner;
 import com.gestankbratwurst.autoharvester.AutoWoodcutter;
+import com.gestankbratwurst.autoharvester.PlankGatherer;
 import com.gestankbratwurst.mousemovement.MouseAgent;
 import com.gestankbratwurst.simplewalk.PathTravel;
 import com.gestankbratwurst.simplewalk.PathTravelOverlay;
@@ -45,7 +46,9 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -65,6 +68,7 @@ public class RuneLiteAddons extends Plugin {
   private final LinkedList<FutureTickTask> tasks = new LinkedList<>();
   private final List<FutureTickTask> pendingAddTasks = new ArrayList<>();
   private final ConcurrentLinkedQueue<CompletionTask<?>> completionTasks = new ConcurrentLinkedQueue<>();
+  private final Map<Class<?>, Deque<CompletableFuture<?>>> eventFutureQueue = new HashMap<>();
 
   @Getter
   @Inject
@@ -104,6 +108,9 @@ public class RuneLiteAddons extends Plugin {
   @Getter
   private SandcrabFighter sandcrabFighter;
 
+  @Getter
+  private PlankGatherer plankGatherer;
+
   private void initAfterLogin() {
     if (mouseAgent == null) {
       mouseAgent = new MouseAgent(this);
@@ -123,7 +130,16 @@ public class RuneLiteAddons extends Plugin {
     if (autoMiner == null) {
       autoMiner = new AutoMiner(this);
     }
+    if (plankGatherer == null) {
+      plankGatherer = new PlankGatherer(this);
+    }
     // EnvironmentUtils.startPickupLoop(this);
+  }
+
+  public <T> CompletableFuture<T> waitForEvent(Class<T> eventClass) {
+    CompletableFuture<T> future = new CompletableFuture<>();
+    eventFutureQueue.computeIfAbsent(eventClass, key -> new ArrayDeque<>()).add(future);
+    return future;
   }
 
   public <T> CompletableFuture<T> supplySync(Supplier<T> supplier) {
@@ -161,11 +177,13 @@ public class RuneLiteAddons extends Plugin {
     pendingAddTasks.add(new FutureTickTask(delay, action));
   }
 
-  private boolean allowPick = true;
-
   @Subscribe
   public void onItemContainerChanged(ItemContainerChanged event) {
     EnvironmentUtils.releasePickup();
+    ArrayDeque<CompletableFuture<?>> queue = (ArrayDeque<CompletableFuture<?>>) eventFutureQueue.computeIfAbsent(event.getClass(), key -> new ArrayDeque<>());
+    while (!queue.isEmpty()) {
+      ((CompletableFuture<ItemContainerChanged>) queue.poll()).complete(event);
+    }
     if (event.getItemContainer().getId() == InventoryID.INVENTORY.getId() && autoWoodcutter != null) {
       autoWoodcutter.notifyInventoryUpdate();
     }
@@ -203,15 +221,15 @@ public class RuneLiteAddons extends Plugin {
       autoMiner.stop();
       simpleWalker.stop();
       pathTravel.stop();
+      plankGatherer.stop();
     }
 
-    if (client.isKeyPressed(KeyCode.KC_S)) {
+    if (client.isKeyPressed(KeyCode.KC_SHIFT) && client.isKeyPressed(KeyCode.KC_CONTROL) && client.isKeyPressed(KeyCode.KC_S)) {
       sandcrabFighter.start();
     }
 
-    if (client.isKeyPressed(KeyCode.KC_V) && allowPick) {
-      allowPick = false;
-      EnvironmentUtils.openNearbyBankBooth(getClient(), this, getMouseAgent(), 12).thenRun(() -> InventoryUtils.emptyIntoBank(getClient(), getMouseAgent(), ItemUtils.getOreIds()));
+    if (client.isKeyPressed(KeyCode.KC_SHIFT) && client.isKeyPressed(KeyCode.KC_CONTROL) && client.isKeyPressed(KeyCode.KC_P)) {
+      plankGatherer.start();
     }
   }
 
@@ -236,6 +254,9 @@ public class RuneLiteAddons extends Plugin {
     }
     if(sandcrabFighter != null) {
       sandcrabFighter.nextTick();
+    }
+    if(plankGatherer != null) {
+      plankGatherer.nextTick();
     }
     tasks.removeIf(task -> {
       if (task == null) {

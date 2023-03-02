@@ -26,6 +26,9 @@ public class ObjectUtils {
       }
     }
 
+    // Bank Chest
+    bankBoothList.add(19051);
+
     BANK_BOOTHS = Set.copyOf(bankBoothList);
   }
 

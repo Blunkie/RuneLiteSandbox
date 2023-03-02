@@ -82,9 +82,7 @@ public class SandcrabFighter {
   }
 
   public void stop() {
-    if (active) {
-      active = false;
-    }
+    this.active = false;
   }
 
   private void walkAndBack() {
@@ -95,6 +93,10 @@ public class SandcrabFighter {
     int prePrecision = addons.getPathTravel().getPrecision();
     addons.getPathTravel().setPrecision(0);
     addons.getPathTravel().travelTo(new WorldPoint(1761, 3493, 0)).thenRun(() -> {
+      if(!active) {
+        addons.getPathTravel().setPrecision(prePrecision);
+        return;
+      }
       try {
         Thread.sleep(2500);
       } catch (InterruptedException e) {
@@ -102,6 +104,10 @@ public class SandcrabFighter {
       }
     }).thenRun(() -> {
       addons.getPathTravel().travelTo(startPoint).join();
+      if(!active) {
+        addons.getPathTravel().setPrecision(prePrecision);
+        return;
+      }
       try {
         Thread.sleep(ThreadLocalRandom.current().nextInt(2150, 3350));
       } catch (InterruptedException e) {
@@ -111,6 +117,9 @@ public class SandcrabFighter {
         addons.getPathTravel().travelTo(startPoint).join();
       }
       addons.getPathTravel().setPrecision(prePrecision);
+      if(!active) {
+        return;
+      }
       start();
     }).whenComplete((v, t) -> {
       if (t != null) {

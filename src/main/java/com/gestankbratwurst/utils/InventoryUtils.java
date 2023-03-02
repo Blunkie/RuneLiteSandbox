@@ -38,8 +38,13 @@ public class InventoryUtils {
       return false;
     }
 
-    for (int i = 0; i < INVENTORY_SLOTS; i++) {
-      Widget child = inventory.getChild(i);
+    Widget[] children = inventory.getChildren();
+
+    if (children == null) {
+      return false;
+    }
+
+    for (Widget child : inventory.getChildren()) {
       if (child.getItemId() == EMPTY_ITEM_ID) {
         return false;
       }
@@ -77,7 +82,7 @@ public class InventoryUtils {
         agent.leftClick();
       }
       try {
-        Thread.sleep(333);
+        Thread.sleep(500);
         agent.pressKey(KeyEvent.VK_ESCAPE).get(10, TimeUnit.SECONDS);
       } catch (InterruptedException | ExecutionException | TimeoutException e) {
         e.printStackTrace();

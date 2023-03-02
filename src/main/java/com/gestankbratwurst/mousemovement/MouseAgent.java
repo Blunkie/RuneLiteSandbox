@@ -35,6 +35,7 @@ public class MouseAgent {
     Canvas canvas = addons.getClient().getCanvas();
     Dimension screenSize = canvas.getSize();
     Point screenLoc = canvas.getLocationOnScreen();
+    System.out.println("ScreenLoc: " + screenLoc.x + " / " + screenLoc.y);
     MouseMotionNature nature = new ScreenAdjustedNature(screenSize, screenLoc);
     this.motionFactory = FactoryTemplates.createAverageComputerUserMotionFactory(nature);
     this.fastMotionFactory = FactoryTemplates.createFastGamerMotionFactory(nature);
