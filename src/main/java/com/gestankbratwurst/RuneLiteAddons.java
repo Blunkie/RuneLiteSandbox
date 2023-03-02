@@ -1,6 +1,7 @@
 package com.gestankbratwurst;
 
 import com.gestankbratwurst.autofight.AutoFighter;
+import com.gestankbratwurst.autofight.SandcrabFighter;
 import com.gestankbratwurst.autoharvester.AutoMiner;
 import com.gestankbratwurst.autoharvester.AutoWoodcutter;
 import com.gestankbratwurst.mousemovement.MouseAgent;
@@ -100,12 +101,18 @@ public class RuneLiteAddons extends Plugin {
   @Getter
   private PathTravel pathTravel;
 
+  @Getter
+  private SandcrabFighter sandcrabFighter;
+
   private void initAfterLogin() {
     if (mouseAgent == null) {
       mouseAgent = new MouseAgent(this);
     }
     if (autoFighter == null) {
       autoFighter = new AutoFighter(this);
+    }
+    if (sandcrabFighter == null) {
+      sandcrabFighter = new SandcrabFighter(this);
     }
     if (autoWoodcutter == null) {
       autoWoodcutter = new AutoWoodcutter(this);
@@ -191,10 +198,15 @@ public class RuneLiteAddons extends Plugin {
 
     if (client.isKeyPressed(KeyCode.KC_X)) {
       autoFighter.stop();
+      sandcrabFighter.stop();
       autoWoodcutter.stop();
       autoMiner.stop();
       simpleWalker.stop();
       pathTravel.stop();
+    }
+
+    if (client.isKeyPressed(KeyCode.KC_S)) {
+      sandcrabFighter.start();
     }
 
     if (client.isKeyPressed(KeyCode.KC_V) && allowPick) {
@@ -221,6 +233,9 @@ public class RuneLiteAddons extends Plugin {
     }
     if(autoFighter != null) {
       autoFighter.nextTick();
+    }
+    if(sandcrabFighter != null) {
+      sandcrabFighter.nextTick();
     }
     tasks.removeIf(task -> {
       if (task == null) {

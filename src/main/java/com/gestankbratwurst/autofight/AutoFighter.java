@@ -52,7 +52,11 @@ public class AutoFighter {
   }
 
   public void start() {
+    if(active) {
+      return;
+    }
     active = true;
+    lastAction = System.currentTimeMillis();
     attackNextNpc();
     foodLoop();
     System.out.println("> Auto fighter started");
@@ -66,6 +70,7 @@ public class AutoFighter {
     long actionDelta = System.currentTimeMillis() - lastAction;
 
     if (actionDelta > 3000 && active) {
+      lastAction = System.currentTimeMillis();
       System.out.println("> Idled for too long");
       attackNextNpc();
     }

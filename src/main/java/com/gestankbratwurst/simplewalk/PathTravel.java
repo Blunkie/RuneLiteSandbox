@@ -7,6 +7,7 @@ import com.gestankbratwurst.utils.shortestpath.pathfinder.CollisionMap;
 import com.gestankbratwurst.utils.shortestpath.pathfinder.Pathfinder;
 import com.gestankbratwurst.utils.shortestpath.pathfinder.PathfinderConfig;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.Value;
 import net.runelite.api.Perspective;
 import net.runelite.api.coords.LocalPoint;
@@ -42,6 +43,9 @@ public class PathTravel {
   @Getter
   private WorldPoint currentTarget = null;
   private boolean stuck = false;
+  @Getter
+  @Setter
+  private int precision = 1;
 
   public PathTravel(RuneLiteAddons addons) {
     this.addons = addons;
@@ -128,7 +132,7 @@ public class PathTravel {
     if (currentWalkCallback == null || currentTarget == null || !traveling || currentWalkCallback.isDone()) {
       return;
     }
-    if (addons.getClient().getLocalPlayer().getWorldLocation().distanceTo2D(currentTarget) <= 1) {
+    if (addons.getClient().getLocalPlayer().getWorldLocation().distanceTo2D(currentTarget) <= precision) {
       currentWalkCallback.complete(null);
     }
   }
