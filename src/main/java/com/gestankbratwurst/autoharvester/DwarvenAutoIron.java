@@ -126,7 +126,7 @@ public class DwarvenAutoIron {
     } catch (InterruptedException | ExecutionException | TimeoutException e) {
       throw new RuntimeException(e);
     }
-    if(plugin.waitForEvent(WidgetLoaded.class, event -> event.getGroupId() == WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER.getGroupId(), 6500).join() == null) {
+    if(plugin.waitForEvent(WidgetLoaded.class, event -> event.getGroupId() == WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER.getGroupId(), 12000).join() == null) {
       nextAction = this::clickBankExact;
       return;
     }
@@ -161,7 +161,7 @@ public class DwarvenAutoIron {
         return false;
       }
       return event.getActor().getAnimation() == AnimationID.IDLE;
-    }, 6500).join();
+    }, 12000).join();
 
     if(plugin.getClient().getLocalPlayer().getWorldLocation().distanceTo(startPoint) > 0) {
       System.out.println("> Distance to start is " + plugin.getClient().getLocalPlayer().getWorldLocation().distanceTo(startPoint));
