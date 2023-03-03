@@ -72,37 +72,34 @@ public class GemMiner {
         return;
       }
       Optional<GameObject> nextBlock = EnvironmentUtils.findObjects(plugin.getClient(), 32, object -> {
-        if (!ArrayUtils.contains(ObjectIdGroups.gemRocks(), object.getId())) {
-          return false;
-        }
-        return object.getWorldLocation().getX() <= 3025;
+        return ArrayUtils.contains(ObjectIdGroups.gemRocks(), object.getId());
       }).stream().min(Comparator.comparingInt(obj -> obj.getWorldLocation().distanceTo(plugin.getClient().getLocalPlayer().getWorldLocation())));
 
       if (nextBlock.isPresent()) {
         Shape clickBox = nextBlock.get().getClickbox();
         if (clickBox == null) {
-          plugin.getPathTravel().travelTo(nextBlock.get().getWorldLocation()).join();
-          clickBox = nextBlock.get().getClickbox();
-          if (clickBox == null) {
-            continue;
-          }
+          System.out.println("> Rock is not on the screen...");
+          continue;
         }
         Point point = ShapeUtils.selectRandomPointIn(clickBox);
         plugin.getMouseAgent().moveMouseTo(point);
-        plugin.getMouseAgent().leftClick();
+        try {
+          plugin.getMouseAgent().leftClick().get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+          throw new RuntimeException(e);
+        }
         while (plugin.waitForEvent(ItemContainerChanged.class, event -> true, 6000).join() == null) {
           point = ShapeUtils.selectRandomPointIn(nextBlock.get().getClickbox());
           plugin.getMouseAgent().moveMouseTo(point);
-          plugin.getMouseAgent().leftClick();
+          try {
+            plugin.getMouseAgent().leftClick().get(5, TimeUnit.SECONDS);
+          } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new RuntimeException(e);
+          }
         }
       } else {
         nextAction = this::runToMine;
         System.out.println("> Didnt find any gems... Running to mine");
-        try {
-          Thread.sleep(500);
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-        }
         return;
       }
     }
