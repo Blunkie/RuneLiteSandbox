@@ -8,8 +8,6 @@ import com.gestankbratwurst.utils.ShapeUtils;
 import com.google.common.base.Preconditions;
 import net.runelite.api.AnimationID;
 import net.runelite.api.GameObject;
-import net.runelite.api.Tile;
-import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.AnimationChanged;
 import net.runelite.api.events.ItemContainerChanged;
@@ -30,7 +28,6 @@ public class GemMiner {
   private final RuneLiteAddons plugin;
   private final WorldPoint bankEntry;
   private final WorldPoint mineEntry;
-  private final WorldPoint bankBooth;
   private boolean active = false;
   private Runnable nextAction = null;
 
@@ -38,7 +35,6 @@ public class GemMiner {
     this.plugin = plugin;
     this.bankEntry = new WorldPoint(2852, 2956, 0);
     this.mineEntry = new WorldPoint(2826, 2997, 0);
-    this.bankBooth = new WorldPoint(2852, 2951, 0);
   }
 
   public void start() {
@@ -71,7 +67,7 @@ public class GemMiner {
       if (!active) {
         return;
       }
-      Optional<GameObject> nextBlock = EnvironmentUtils.findObjects(plugin.getClient(), 32, object -> {
+      Optional<GameObject> nextBlock = EnvironmentUtils.findObjects(plugin.getClient(), 24, object -> {
         return ArrayUtils.contains(ObjectIdGroups.gemRocks(), object.getId());
       }).stream().min(Comparator.comparingInt(obj -> obj.getWorldLocation().distanceTo(plugin.getClient().getLocalPlayer().getWorldLocation())));
 
@@ -88,15 +84,7 @@ public class GemMiner {
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
           throw new RuntimeException(e);
         }
-        while (plugin.waitForEvent(ItemContainerChanged.class, event -> true, 6000).join() == null) {
-          point = ShapeUtils.selectRandomPointIn(nextBlock.get().getClickbox());
-          plugin.getMouseAgent().moveMouseTo(point);
-          try {
-            plugin.getMouseAgent().leftClick().get(5, TimeUnit.SECONDS);
-          } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            throw new RuntimeException(e);
-          }
-        }
+        plugin.waitForEvent(ItemContainerChanged.class, event -> true, 6000).join();
       } else {
         nextAction = this::runToMine;
         System.out.println("> Didnt find any gems... Running to mine");
@@ -156,6 +144,14 @@ public class GemMiner {
   private void runToMine() {
     System.out.println("> Running to gems...");
     plugin.getPathTravel().travelTo(mineEntry).join();
+    plugin.waitForEvent(AnimationChanged.class, event -> {
+      return event.getActor().equals(plugin.getClient().getLocalPlayer()) && event.getActor().getAnimation() == AnimationID.IDLE;
+    }, 3750).join();
+    try {
+      Thread.sleep(750);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
     nextAction = this::mineGems;
   }
 
