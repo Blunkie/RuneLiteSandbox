@@ -92,13 +92,13 @@ public class SandcrabFighter {
     startPoint = client.getLocalPlayer().getWorldLocation();
     int prePrecision = addons.getPathTravel().getPrecision();
     addons.getPathTravel().setPrecision(0);
-    addons.getPathTravel().travelTo(new WorldPoint(1761, 3493, 0)).thenRun(() -> {
+    addons.getPathTravel().travelTo(new WorldPoint(1763, 3502, 0)).thenRun(() -> {
       if(!active) {
         addons.getPathTravel().setPrecision(prePrecision);
         return;
       }
       try {
-        Thread.sleep(2500);
+        Thread.sleep(2750);
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       }
@@ -115,8 +115,12 @@ public class SandcrabFighter {
       }
       while (client.getLocalPlayer().getWorldLocation().distanceTo(startPoint) > 0) {
         addons.getPathTravel().travelTo(startPoint).join();
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
       }
-      addons.getPathTravel().setPrecision(prePrecision);
       if(!active) {
         return;
       }
