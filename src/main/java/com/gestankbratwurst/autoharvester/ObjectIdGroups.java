@@ -14,6 +14,10 @@ public class ObjectIdGroups {
     create(11366, 11367);
   }
 
+  public static int[] coalRocks() {
+    return groupOrId(11366);
+  }
+
   public static int[] groupOrId(int id) {
     if (groups.containsKey(id)) {
       return groups.get(id);

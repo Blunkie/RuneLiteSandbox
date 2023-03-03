@@ -4,6 +4,7 @@ import com.gestankbratwurst.autofight.AutoFighter;
 import com.gestankbratwurst.autofight.SandcrabFighter;
 import com.gestankbratwurst.autoharvester.AutoMiner;
 import com.gestankbratwurst.autoharvester.AutoWoodcutter;
+import com.gestankbratwurst.autoharvester.DwarvenAutoCoal;
 import com.gestankbratwurst.autoharvester.DwarvenAutoIron;
 import com.gestankbratwurst.autoharvester.PlankGatherer;
 import com.gestankbratwurst.mousemovement.MouseAgent;
@@ -117,6 +118,9 @@ public class RuneLiteAddons extends Plugin {
   @Getter
   private DwarvenAutoIron dwarvenAutoIron;
 
+  @Getter
+  private DwarvenAutoCoal dwarvenAutoCoal;
+
   private void initAfterLogin() {
     if (mouseAgent == null) {
       mouseAgent = new MouseAgent(this);
@@ -141,6 +145,9 @@ public class RuneLiteAddons extends Plugin {
     }
     if (dwarvenAutoIron == null) {
       dwarvenAutoIron = new DwarvenAutoIron(this);
+    }
+    if (dwarvenAutoCoal == null) {
+      dwarvenAutoCoal = new DwarvenAutoCoal(this);
     }
     // EnvironmentUtils.startPickupLoop(this);
   }
@@ -243,6 +250,7 @@ public class RuneLiteAddons extends Plugin {
       pathTravel.stop();
       plankGatherer.stop();
       dwarvenAutoIron.stop();
+      dwarvenAutoCoal.stop();
     }
 
     if (client.isKeyPressed(KeyCode.KC_SHIFT) && client.isKeyPressed(KeyCode.KC_CONTROL) && client.isKeyPressed(KeyCode.KC_S)) {
@@ -255,6 +263,10 @@ public class RuneLiteAddons extends Plugin {
 
     if (client.isKeyPressed(KeyCode.KC_SHIFT) && client.isKeyPressed(KeyCode.KC_CONTROL) && client.isKeyPressed(KeyCode.KC_I)) {
       dwarvenAutoIron.start();
+    }
+
+    if (client.isKeyPressed(KeyCode.KC_SHIFT) && client.isKeyPressed(KeyCode.KC_CONTROL) && client.isKeyPressed(KeyCode.KC_C)) {
+      dwarvenAutoCoal.start();
     }
   }
 
