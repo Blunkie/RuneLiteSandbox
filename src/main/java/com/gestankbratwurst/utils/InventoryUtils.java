@@ -62,12 +62,12 @@ public class InventoryUtils {
   }
 
   public static CompletableFuture<Void> emptyIntoBank(Client client, MouseAgent agent, int... itemIds) {
-    System.out.println("> Empty into bank");
     Set<Integer> ids = new HashSet<>(itemIds.length);
     Map<Integer, Point> firstCaught = new HashMap<>();
     Arrays.stream(itemIds).forEach(ids::add);
     Widget inventory = client.getWidget(WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER);
     if (inventory == null) {
+      System.out.println("> Could not find " + WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER);
       return CompletableFuture.completedFuture(null);
     }
     for (int i = 0; i < INVENTORY_SLOTS; i++) {

@@ -11,6 +11,8 @@ import net.runelite.api.ItemID;
 import net.runelite.api.Tile;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ItemContainerChanged;
+import net.runelite.api.events.WidgetClosed;
+import net.runelite.api.widgets.WidgetInfo;
 
 import java.awt.Point;
 import java.util.ArrayList;
@@ -136,7 +138,7 @@ public class PlankGatherer {
       }
       mouseAgent.leftClick();
       try {
-        plugin.waitForEvent(ItemContainerChanged.class).get(5, TimeUnit.SECONDS);
+        plugin.waitForEvent(ItemContainerChanged.class, event -> event.getContainerId() == WidgetInfo.INVENTORY.getId(), 5000).get(5, TimeUnit.SECONDS);
       } catch (InterruptedException | ExecutionException | TimeoutException e) {
         System.out.println("> Timed out on plank pickup!");
       }

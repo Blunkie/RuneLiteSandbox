@@ -4,14 +4,13 @@ import com.gestankbratwurst.autofight.AutoFighter;
 import com.gestankbratwurst.autofight.SandcrabFighter;
 import com.gestankbratwurst.autoharvester.AutoMiner;
 import com.gestankbratwurst.autoharvester.AutoWoodcutter;
+import com.gestankbratwurst.autoharvester.DwarvenAutoIron;
 import com.gestankbratwurst.autoharvester.PlankGatherer;
 import com.gestankbratwurst.mousemovement.MouseAgent;
 import com.gestankbratwurst.simplewalk.PathTravel;
 import com.gestankbratwurst.simplewalk.PathTravelOverlay;
 import com.gestankbratwurst.simplewalk.SimpleWalker;
 import com.gestankbratwurst.utils.EnvironmentUtils;
-import com.gestankbratwurst.utils.InventoryUtils;
-import com.gestankbratwurst.utils.ItemUtils;
 import com.gestankbratwurst.utils.Rock;
 import com.google.inject.Provides;
 import lombok.Getter;
@@ -39,6 +38,7 @@ import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuEntryAdded;
+import net.runelite.api.events.WidgetLoaded;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -46,7 +46,6 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
@@ -55,6 +54,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 @Slf4j
@@ -68,7 +71,8 @@ public class RuneLiteAddons extends Plugin {
   private final LinkedList<FutureTickTask> tasks = new LinkedList<>();
   private final List<FutureTickTask> pendingAddTasks = new ArrayList<>();
   private final ConcurrentLinkedQueue<CompletionTask<?>> completionTasks = new ConcurrentLinkedQueue<>();
-  private final Map<Class<?>, Deque<CompletableFuture<?>>> eventFutureQueue = new HashMap<>();
+  private final Map<Class<?>, Deque<ConditionedFutureFuture<?>>> eventFutureQueue = new HashMap<>();
+  private final ScheduledExecutorService timeoutExecutor = Executors.newSingleThreadScheduledExecutor();
 
   @Getter
   @Inject
@@ -77,9 +81,8 @@ public class RuneLiteAddons extends Plugin {
   @Getter
   @Inject
   private RuneLiteAdddonsConfig config;
-
-  @Inject
-  private InventoryGridOverlay inventoryOverlay;
+  //@Inject
+  //private InventoryGridOverlay inventoryOverlay;
 
   @Inject
   private OreDetectOverlay oreOverlay;
@@ -111,6 +114,9 @@ public class RuneLiteAddons extends Plugin {
   @Getter
   private PlankGatherer plankGatherer;
 
+  @Getter
+  private DwarvenAutoIron dwarvenAutoIron;
+
   private void initAfterLogin() {
     if (mouseAgent == null) {
       mouseAgent = new MouseAgent(this);
@@ -133,12 +139,17 @@ public class RuneLiteAddons extends Plugin {
     if (plankGatherer == null) {
       plankGatherer = new PlankGatherer(this);
     }
+    if (dwarvenAutoIron == null) {
+      dwarvenAutoIron = new DwarvenAutoIron(this);
+    }
     // EnvironmentUtils.startPickupLoop(this);
   }
 
-  public <T> CompletableFuture<T> waitForEvent(Class<T> eventClass) {
+  public <T> CompletableFuture<T> waitForEvent(Class<T> eventClass, Predicate<T> condition, long timeout) {
     CompletableFuture<T> future = new CompletableFuture<>();
-    eventFutureQueue.computeIfAbsent(eventClass, key -> new ArrayDeque<>()).add(future);
+    ConditionedFutureFuture<T> conditionedFutureFuture = new ConditionedFutureFuture<>(condition, future);
+    eventFutureQueue.computeIfAbsent(eventClass, key -> new LinkedList<>()).add(conditionedFutureFuture);
+    timeoutExecutor.schedule(conditionedFutureFuture::completeTimeOut, timeout, TimeUnit.MILLISECONDS);
     return future;
   }
 
@@ -160,7 +171,7 @@ public class RuneLiteAddons extends Plugin {
   @Override
   protected void startUp() {
     pathTravel = new PathTravel(this);
-    overlayManager.add(inventoryOverlay);
+    // overlayManager.add(inventoryOverlay);
     // overlayManager.add(oreOverlay);
     overlayManager.add(new PathTravelOverlay(this));
     log.info("> RuneLiteSandbox started!");
@@ -168,8 +179,8 @@ public class RuneLiteAddons extends Plugin {
 
   @Override
   protected void shutDown() {
-    overlayManager.remove(oreOverlay);
-    overlayManager.remove(inventoryOverlay);
+    // overlayManager.remove(oreOverlay);
+    // overlayManager.remove(inventoryOverlay);
     log.info("> RuneLiteSandbox stopped!");
   }
 
@@ -177,13 +188,21 @@ public class RuneLiteAddons extends Plugin {
     pendingAddTasks.add(new FutureTickTask(delay, action));
   }
 
+  @SuppressWarnings("unchecked")
+  private <T> void checkConditionedFutureQueue(T event) {
+    LinkedList<ConditionedFutureFuture<?>> queue = (LinkedList<ConditionedFutureFuture<?>>) eventFutureQueue.computeIfAbsent(event.getClass(), key -> new LinkedList<>());
+    queue.removeIf(condition -> ((ConditionedFutureFuture<T>) condition).checkCompletion(event));
+  }
+
+  @Subscribe
+  public void onWidgetLoaded(WidgetLoaded event) {
+    checkConditionedFutureQueue(event);
+  }
+
   @Subscribe
   public void onItemContainerChanged(ItemContainerChanged event) {
     EnvironmentUtils.releasePickup();
-    ArrayDeque<CompletableFuture<?>> queue = (ArrayDeque<CompletableFuture<?>>) eventFutureQueue.computeIfAbsent(event.getClass(), key -> new ArrayDeque<>());
-    while (!queue.isEmpty()) {
-      ((CompletableFuture<ItemContainerChanged>) queue.poll()).complete(event);
-    }
+    checkConditionedFutureQueue(event);
     if (event.getItemContainer().getId() == InventoryID.INVENTORY.getId() && autoWoodcutter != null) {
       autoWoodcutter.notifyInventoryUpdate();
     }
@@ -194,6 +213,7 @@ public class RuneLiteAddons extends Plugin {
 
   @Subscribe
   public void onAnimationChanged(AnimationChanged event) {
+    checkConditionedFutureQueue(event);
     if (autoWoodcutter != null && event.getActor().equals(client.getLocalPlayer())) {
       autoWoodcutter.notifyActionChange(event);
     }
@@ -222,6 +242,7 @@ public class RuneLiteAddons extends Plugin {
       simpleWalker.stop();
       pathTravel.stop();
       plankGatherer.stop();
+      dwarvenAutoIron.stop();
     }
 
     if (client.isKeyPressed(KeyCode.KC_SHIFT) && client.isKeyPressed(KeyCode.KC_CONTROL) && client.isKeyPressed(KeyCode.KC_S)) {
@@ -230,6 +251,10 @@ public class RuneLiteAddons extends Plugin {
 
     if (client.isKeyPressed(KeyCode.KC_SHIFT) && client.isKeyPressed(KeyCode.KC_CONTROL) && client.isKeyPressed(KeyCode.KC_P)) {
       plankGatherer.start();
+    }
+
+    if (client.isKeyPressed(KeyCode.KC_SHIFT) && client.isKeyPressed(KeyCode.KC_CONTROL) && client.isKeyPressed(KeyCode.KC_I)) {
+      dwarvenAutoIron.start();
     }
   }
 
@@ -246,16 +271,16 @@ public class RuneLiteAddons extends Plugin {
     if (autoMiner != null) {
       autoMiner.nextTick();
     }
-    if(autoWoodcutter != null) {
+    if (autoWoodcutter != null) {
       autoWoodcutter.nextTick();
     }
-    if(autoFighter != null) {
+    if (autoFighter != null) {
       autoFighter.nextTick();
     }
-    if(sandcrabFighter != null) {
+    if (sandcrabFighter != null) {
       sandcrabFighter.nextTick();
     }
-    if(plankGatherer != null) {
+    if (plankGatherer != null) {
       plankGatherer.nextTick();
     }
     tasks.removeIf(task -> {
