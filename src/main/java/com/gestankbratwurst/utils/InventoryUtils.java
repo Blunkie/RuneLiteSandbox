@@ -3,7 +3,6 @@ package com.gestankbratwurst.utils;
 import com.gestankbratwurst.RuneLiteAddons;
 import com.gestankbratwurst.mousemovement.MouseAgent;
 import net.runelite.api.Client;
-import net.runelite.api.KeyCode;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
 
@@ -11,7 +10,6 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -20,6 +18,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -53,9 +52,36 @@ public class InventoryUtils {
     return true;
   }
 
+  public static CompletableFuture<Void> dumpIntoBankBox(Client client, MouseAgent agent) {
+    return CompletableFuture.runAsync(() -> {
+      Widget dumpButton = client.getWidget(192, 4);
+
+      if(dumpButton == null) {
+        System.out.println("> Could not find dump button...");
+        return;
+      }
+
+      Point point = ShapeUtils.selectRandomPointIn(dumpButton.getBounds());
+      agent.moveMouseTo(point);
+
+      try {
+        agent.leftClick().get(5000, TimeUnit.SECONDS);
+      } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        throw new RuntimeException(e);
+      }
+
+      try {
+        Thread.sleep(ThreadLocalRandom.current().nextInt(500, 750));
+        agent.pressKey(KeyEvent.VK_ESCAPE).get(5, TimeUnit.SECONDS);
+      } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        throw new RuntimeException(e);
+      }
+    });
+  }
+
   public static CompletableFuture<Void> emptyIntoBank(Client client, MouseAgent agent, List<Integer> ids) {
     int[] idsArray = new int[ids.size()];
-    for(int i = 0; i < ids.size(); i++) {
+    for (int i = 0; i < ids.size(); i++) {
       idsArray[i] = ids.get(i);
     }
     return emptyIntoBank(client, agent, idsArray);

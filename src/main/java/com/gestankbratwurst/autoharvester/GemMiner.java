@@ -8,7 +8,6 @@ import com.gestankbratwurst.utils.ShapeUtils;
 import com.google.common.base.Preconditions;
 import net.runelite.api.AnimationID;
 import net.runelite.api.GameObject;
-import net.runelite.api.ItemID;
 import net.runelite.api.Tile;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
@@ -22,38 +21,32 @@ import java.awt.Shape;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class DwarvenAutoCoal {
-
-  private static final int[] ITEMS = {
-          ItemID.COAL,
-          ItemID.UNCUT_DIAMOND,
-          ItemID.UNCUT_EMERALD,
-          ItemID.UNCUT_RUBY,
-          ItemID.UNCUT_SAPPHIRE
-  };
+public class GemMiner {
 
   private final RuneLiteAddons plugin;
+  private final WorldPoint bankEntry;
+  private final WorldPoint mineEntry;
+  private final WorldPoint bankBooth;
   private boolean active = false;
   private Runnable nextAction = null;
-  private WorldPoint startPoint = null;
 
-  public DwarvenAutoCoal(RuneLiteAddons plugin) {
+  public GemMiner(RuneLiteAddons plugin) {
     this.plugin = plugin;
+    this.bankEntry = new WorldPoint(2852, 2956, 0);
+    this.mineEntry = new WorldPoint(2826, 2997, 0);
+    this.bankBooth = new WorldPoint(2852, 2951, 0);
   }
 
   public void start() {
     if (!active) {
       active = true;
-      startPoint = plugin.getClient().getLocalPlayer().getWorldLocation();
-      nextAction = this::mineCoalOres;
+      nextAction = this::mineGems;
       CompletableFuture.runAsync(this::loop);
-      System.out.println("> Dwarven coal miner started");
+      System.out.println("> Gem miner started");
     }
   }
 
@@ -61,7 +54,7 @@ public class DwarvenAutoCoal {
     if (active) {
       active = false;
       nextAction = null;
-      System.out.println("> Dwarven coal miner stopped");
+      System.out.println("> Gem miner stopped");
     }
   }
 
@@ -71,15 +64,15 @@ public class DwarvenAutoCoal {
     }
   }
 
-  private void mineCoalOres() {
-    System.out.println("> Mining ores...");
+  private void mineGems() {
+    System.out.println("> Mining gems...");
 
     while (!plugin.supplySync(() -> InventoryUtils.isFull(plugin.getClient())).join()) {
       if (!active) {
         return;
       }
       Optional<GameObject> nextBlock = EnvironmentUtils.findObjects(plugin.getClient(), 32, object -> {
-        if (!ArrayUtils.contains(ObjectIdGroups.coalRocks(), object.getId())) {
+        if (!ArrayUtils.contains(ObjectIdGroups.gemRocks(), object.getId())) {
           return false;
         }
         return object.getWorldLocation().getX() <= 3025;
@@ -94,92 +87,79 @@ public class DwarvenAutoCoal {
             continue;
           }
         }
-        Point point = ShapeUtils.selectMiddle(clickBox, 0.5);
+        Point point = ShapeUtils.selectRandomPointIn(clickBox);
         plugin.getMouseAgent().moveMouseTo(point);
         plugin.getMouseAgent().leftClick();
         while (plugin.waitForEvent(ItemContainerChanged.class, event -> true, 6000).join() == null) {
-          point = ShapeUtils.selectMiddle(nextBlock.get().getClickbox(), 0.5);
+          point = ShapeUtils.selectRandomPointIn(nextBlock.get().getClickbox());
           plugin.getMouseAgent().moveMouseTo(point);
           plugin.getMouseAgent().leftClick();
         }
       } else {
-        nextAction = this::walkToBank;
+        nextAction = this::runToMine;
+        System.out.println("> Didnt find any gems... Running to mine");
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
         return;
       }
     }
 
-    nextAction = this::walkToBank;
+    nextAction = this::runToBank;
   }
 
-
-  private void walkToBank() {
-    WorldPoint exactBankPoint = new WorldPoint(3012, 9718, 0);
-    LocalPoint localPoint = LocalPoint.fromWorld(plugin.getClient(), exactBankPoint);
-
-    if (localPoint != null) {
-      Tile tile = plugin.getClient().getScene().getTiles()[0][localPoint.getSceneX()][localPoint.getSceneY()];
-      GameObject[] gameObjects = tile.getGameObjects();
-      if (gameObjects != null && gameObjects.length > 0) {
-        GameObject base = gameObjects[0];
-        Shape clickBox = base.getClickbox();
-        if (clickBox != null) {
-          System.out.println("> Found bank on screen...");
-          nextAction = this::clickBankExact;
-          return;
-        }
-      }
-    }
-
-    WorldPoint bankPoint = new WorldPoint(3015, 9718, 0);
-    plugin.getPathTravel().travelTo(bankPoint).join();
+  private void runToBank() {
+    System.out.println("> Running to bank...");
+    plugin.getPathTravel().travelTo(bankEntry).join();
     plugin.waitForEvent(AnimationChanged.class, event -> {
       return event.getActor().equals(plugin.getClient().getLocalPlayer()) && event.getActor().getAnimation() == AnimationID.IDLE;
-    }, 2500).join();
-    nextAction = this::clickBankExact;
+    }, 3750).join();
+    nextAction = this::clickOnBankExact;
   }
 
-  private void clickBankExact() {
+  private void clickOnBankExact() {
     System.out.println("> Clicking bank...");
-    WorldPoint bankPoint = new WorldPoint(3012, 9718, 0);
-    LocalPoint localPoint = LocalPoint.fromWorld(plugin.getClient(), bankPoint);
+    Optional<GameObject> box = EnvironmentUtils.findObjects(plugin.getClient(), 32, obj -> obj.getId() == 10529).stream().findAny();
 
-    Preconditions.checkState(localPoint != null, "Bank not on the screen");
+    Preconditions.checkState(box.isPresent(), "Bank box is not nearby");
 
-    Tile tile = plugin.getClient().getScene().getTiles()[0][localPoint.getSceneX()][localPoint.getSceneY()];
-    GameObject[] gameObjects = tile.getGameObjects();
-    Preconditions.checkState(gameObjects != null);
-    GameObject base = gameObjects[0];
-    Preconditions.checkState(base != null, "Base cant be null.");
-    Shape clickBox = base.getClickbox();
+    Shape clickBox = box.get().getClickbox();
     Preconditions.checkState(clickBox != null, "ClickBox cant be null.");
     Point clickPoint = ShapeUtils.selectMiddle(clickBox, 0.5);
     plugin.getMouseAgent().moveMouseTo(clickPoint);
+
     try {
       plugin.getMouseAgent().leftClick().get(5, TimeUnit.SECONDS);
     } catch (InterruptedException | ExecutionException | TimeoutException e) {
       throw new RuntimeException(e);
     }
-    if (plugin.waitForEvent(WidgetLoaded.class, event -> event.getGroupId() == WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER.getGroupId(), 12000).join() == null) {
-      nextAction = this::clickBankExact;
+
+    if (plugin.waitForEvent(WidgetLoaded.class, event -> event.getGroupId() == WidgetInfo.DEPOSIT_BOX_INVENTORY_ITEMS_CONTAINER.getGroupId(), 8000).join() == null) {
+      nextAction = this::clickOnBankExact;
       return;
     }
+
     try {
       Thread.sleep(666);
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
+
     nextAction = this::deposit;
   }
 
   private void deposit() {
-    System.out.println("> Empty into bank...");
-    InventoryUtils.emptyIntoBank(plugin.getClient(), plugin.getMouseAgent(), ITEMS).join();
-    try {
-      Thread.sleep(666);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-    nextAction = this::mineCoalOres;
+    System.out.println("> Deposit into bank...");
+    InventoryUtils.dumpIntoBankBox(plugin.getClient(), plugin.getMouseAgent()).join();
+    nextAction = this::runToMine;
+  }
+
+  private void runToMine() {
+    System.out.println("> Running to gems...");
+    plugin.getPathTravel().travelTo(mineEntry).join();
+    nextAction = this::mineGems;
   }
 
 }

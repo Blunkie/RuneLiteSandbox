@@ -11,7 +11,14 @@ public class ObjectIdGroups {
     create(10943, 11161);
     create(11365, 11364);
     create(11360, 11361);
+    // Coal rocks
     create(11366, 11367);
+    // Gem rocks
+    create(11381, 11380);
+  }
+
+  public static int[] gemRocks() {
+    return groupOrId(11381);
   }
 
   public static int[] coalRocks() {

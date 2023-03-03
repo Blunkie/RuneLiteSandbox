@@ -6,12 +6,14 @@ import com.gestankbratwurst.autoharvester.AutoMiner;
 import com.gestankbratwurst.autoharvester.AutoWoodcutter;
 import com.gestankbratwurst.autoharvester.DwarvenAutoCoal;
 import com.gestankbratwurst.autoharvester.DwarvenAutoIron;
+import com.gestankbratwurst.autoharvester.GemMiner;
 import com.gestankbratwurst.autoharvester.PlankGatherer;
 import com.gestankbratwurst.mousemovement.MouseAgent;
 import com.gestankbratwurst.simplewalk.PathTravel;
 import com.gestankbratwurst.simplewalk.PathTravelOverlay;
 import com.gestankbratwurst.simplewalk.SimpleWalker;
 import com.gestankbratwurst.utils.EnvironmentUtils;
+import com.gestankbratwurst.utils.InventoryUtils;
 import com.gestankbratwurst.utils.Rock;
 import com.google.inject.Provides;
 import lombok.Getter;
@@ -121,6 +123,9 @@ public class RuneLiteAddons extends Plugin {
   @Getter
   private DwarvenAutoCoal dwarvenAutoCoal;
 
+  @Getter
+  private GemMiner gemMiner;
+
   private void initAfterLogin() {
     if (mouseAgent == null) {
       mouseAgent = new MouseAgent(this);
@@ -148,6 +153,9 @@ public class RuneLiteAddons extends Plugin {
     }
     if (dwarvenAutoCoal == null) {
       dwarvenAutoCoal = new DwarvenAutoCoal(this);
+    }
+    if (gemMiner == null) {
+      gemMiner = new GemMiner(this);
     }
     // EnvironmentUtils.startPickupLoop(this);
   }
@@ -251,6 +259,7 @@ public class RuneLiteAddons extends Plugin {
       plankGatherer.stop();
       dwarvenAutoIron.stop();
       dwarvenAutoCoal.stop();
+      gemMiner.stop();
     }
 
     if (client.isKeyPressed(KeyCode.KC_SHIFT) && client.isKeyPressed(KeyCode.KC_CONTROL) && client.isKeyPressed(KeyCode.KC_S)) {
@@ -267,6 +276,10 @@ public class RuneLiteAddons extends Plugin {
 
     if (client.isKeyPressed(KeyCode.KC_SHIFT) && client.isKeyPressed(KeyCode.KC_CONTROL) && client.isKeyPressed(KeyCode.KC_C)) {
       dwarvenAutoCoal.start();
+    }
+
+    if (client.isKeyPressed(KeyCode.KC_SHIFT) && client.isKeyPressed(KeyCode.KC_CONTROL) && client.isKeyPressed(KeyCode.KC_G)) {
+      gemMiner.start();
     }
   }
 
@@ -302,6 +315,8 @@ public class RuneLiteAddons extends Plugin {
       return task.tick();
     });
   }
+
+
 
   @Subscribe
   public void onActorDeath(ActorDeath actorDeath) {
